@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'src/kanibako/containers/**'
+      - 'containers/**'
   workflow_dispatch:
     inputs:
       push:
@@ -55,8 +55,8 @@ jobs:
       - name: Build and push kanibako-${{ matrix.variant }}
         uses: docker/build-push-action@v7
         with:
-          context: src/kanibako/containers/
-          file: src/kanibako/containers/Containerfile.kanibako
+          context: containers/
+          file: containers/Containerfile.kanibako
           push: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.push) }}
           tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kanibako-${{ matrix.variant }}:edge
           build-args: |
@@ -73,7 +73,7 @@ jobs:
     # Diff-driven selection (#74a): on push (and on dispatch with a diff_base),
     # narrow the matrix to the templates whose Containerfile.template-<name>
     # actually changed. A change to Containerfile.kanibako or ANY other shared
-    # file under src/kanibako/containers/ forces a full rebuild (it affects every
+    # file under containers/ forces a full rebuild (it affects every
     # template). Dispatch WITHOUT diff_base preserves the build-all behavior.
     runs-on: ubuntu-latest
     outputs:
@@ -95,7 +95,7 @@ jobs:
           set -euo pipefail
 
           # FULL list of bundled templates (basename-stripped, sorted JSON).
-          ALL_JSON=$(find src/kanibako/containers -maxdepth 1 \
+          ALL_JSON=$(find containers -maxdepth 1 \
             -name 'Containerfile.template-*' -printf '%f\n' \
             | sed 's/^Containerfile\.template-//' \
             | jq -R -s -c 'split("\n") | map(select(length > 0)) | sort')
@@ -122,8 +122,8 @@ jobs:
 
           if [ "$MODE" = "DIFF" ]; then
             # Changed paths under the containers dir, ignoring the archive/ subdir.
-            CHANGED=$(git diff --name-only "$BASE" "$HEAD_REF" -- src/kanibako/containers/ \
-              | grep -v '^src/kanibako/containers/archive/' || true)
+            CHANGED=$(git diff --name-only "$BASE" "$HEAD_REF" -- containers/ \
+              | grep -v '^containers/archive/' || true)
 
             if [ -z "$CHANGED" ]; then
               # No relevant container changes — build nothing.
@@ -215,8 +215,8 @@ jobs:
         # docker daemon so the smoke step below can run it. Never published.
         uses: docker/build-push-action@v7
         with:
-          context: src/kanibako/containers/
-          file: src/kanibako/containers/Containerfile.template-${{ matrix.template }}
+          context: containers/
+          file: containers/Containerfile.template-${{ matrix.template }}
           push: false
           load: true
           tags: kanibako-template-${{ matrix.template }}:ci
@@ -233,7 +233,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          FILE="src/kanibako/containers/Containerfile.template-${{ matrix.template }}"
+          FILE="containers/Containerfile.template-${{ matrix.template }}"
 
           # Only the LEADING comment block: stop at the first non-blank,
           # non-comment line (the first ARG/FROM), so a check directive lower in
